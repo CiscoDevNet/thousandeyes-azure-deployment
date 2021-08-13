@@ -1,0 +1,236 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "accountGroupToken": {
+            "type": "string",
+            "metadata": {
+                "description": "The token for the ThousandEyes Account Group that the Enterprise Agent will belong to. You can find your ThousandEys account group token under ThousandEyes Agent Settings."
+            }
+        },
+        "enableBrowserBot": {
+            "type": "string",
+            "defaultValue": "Yes",
+            "allowedValues": [
+                "Yes"
+            ],
+            "metadata": {
+                "description": "Allow enabling ThousandEyes Browser test capabilities (Page Load and Transaction). Currently forced to 'Yes'."
+            }
+        },
+        "hostName": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the VM hostname; this will also be the agent name."
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B1s",
+            "metadata": {
+                "description": "Select the size of the Agent VM. Standard_B1s - 1 vCPU, 1 GB Mem; Standard_B2s - 2 vCPU, 4 GB Mem; Standard_D2_v2 - 2 vCPU, 7 GB Mem"
+            }
+        },
+        "networkSecurityGroup": {
+            "type": "string",
+            "defaultValue": "Create New",
+            "allowedValues": [
+                "Create New"
+            ],
+            "metadata": {
+                "description": "Specify whether to create a new security group or use an existing security group. If 'Create New', a default security group will be created that only allows incomming port 22 (SSH) connections; outbound connections will be allowed. Currently forced to 'Create New'."
+            }
+        },
+        "ubuntuOSVersion": {
+            "type": "string",
+            "defaultValue": "18.04-LTS",
+            "allowedValues": [
+                "18.04-LTS",
+                "20.04-LTS"
+            ],
+            "metadata": {
+                "description": "Select the Ubuntu version that the agent will be deployed on. This will use a fully patched image of the given Ubuntu version. Red Hat Enterprise Linux can also be supported, but requires additional OS pricing and is therefore not currently listed as an option."
+            }
+        },
+        "enableAutoPatch": {
+            "type": "string",
+            "defaultValue": "Yes",
+            "allowedValues": [
+                "Yes",
+                "No"
+            ],
+            "metadata": {
+                "description": "Auto Patch is a public preview feature that safely and automatically patches your virtual machine OS to maintain security compliance."
+            }
+        },
+        "adminUsername": {
+            "type": "string",
+            "defaultValue": "thousandeyes",
+            "metadata": {
+                "description": "Specify the admin user name for the VM."
+            }
+        },
+        "sshKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Provide the SSH Public Key that will be used to connecting to the Agent virtual machine."
+            }
+        }
+    },
+    "variables": {
+        "imagePublisher": "Canonical",
+        "imageOffer": "UbuntuServer",
+        "nicName": "networkInterface1",
+        "vmName": "[parameters('hostName')]",
+        "virtualNetworkName": "virtualNetwork1",
+        "publicIPAddressName": "publicIp1",
+        "addressPrefix": "10.0.0.0/16",
+        "subnet1Name": "Subnet-1",
+        "subnet1Prefix": "10.0.0.0/24",
+        "publicIPAddressType": "Dynamic",
+        "linuxConfiguration": {
+            "disablePasswordAuthentication": true,
+            "ssh": {
+                "publicKeys": [
+                    {
+                        "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
+                        "keyData": "[parameters('sshKey')]"
+                    }
+                ]
+            },
+            "provisionVMAgent": true,
+            "patchSettings": {
+                "patchMode": "[if(equals(parameters('enableAutoPatch'),'Yes'), 'AutomaticByPlatform', 'ImageDefault')]"
+            }
+        },
+        "networkSecurityGroupName": "default-NSG",
+        "userData": "[concat('#!/bin/bash \nexport TERM=\"xterm\" \nretry=0 \nuntil [ $retry -ge 5 ] \ndo \nwhile fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do\necho -en \"Waiting for other software managers to finish...\"\nsleep 0.5\ndone\ncurl -Os https://downloads.thousandeyes.com/agent/install_thousandeyes.sh && chmod +x install_thousandeyes.sh && sudo ./install_thousandeyes.sh -b ', parameters('accountGroupToken'), ' && break\nretry=$[$retry+1]\nsleep 15\ndone')]",
+        "location": "[resourceGroup().location]"
+    },
+    "resources": [
+        {
+            "apiVersion": "2019-06-01",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPAddressName')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+            }
+        },
+        {
+            "comments": "Default Network Security Group for template",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2019-08-01",
+            "name": "[variables('networkSecurityGroupName')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "default-allow-22",
+                        "properties": {
+                            "priority": 1000,
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "destinationPortRange": "22",
+                            "protocol": "Tcp",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2019-06-01",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetworkName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('addressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnet1Name')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnet1Prefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2019-06-01",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('nicName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('publicIPAddressName')]",
+                "[variables('virtualNetworkName')]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets/', variables('virtualNetworkName'), variables('subnet1Name'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2021-03-01",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('vmName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('nicName')]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('vmName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "linuxConfiguration": "[variables('linuxConfiguration')]"
+                },
+                "userData": "[base64(variables('userData'))]",
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('imagePublisher')]",
+                        "offer": "[variables('imageOffer')]",
+                        "sku": "[parameters('ubuntuOSVersion')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
