@@ -49,7 +49,7 @@
                 "20.04-LTS"
             ],
             "metadata": {
-                "description": "Select the Ubuntu version that the agent will be deployed on. This will use a fully patched image of the given Ubuntu version. Red Hat Enterprise Linux can also be supported, but requires additional OS pricing and is therefore not currently listed as an option."
+                "description": "Select the Ubuntu version that the agent will be deployed on. This will use a fully patched image of the given Ubuntu version. 20.04 requires Pro. Red Hat Enterprise Linux can also be supported, but requires additional OS pricing and is therefore not currently listed as an option."
             }
         },
         "enableAutoPatch": {
@@ -78,8 +78,10 @@
         }
     },
     "variables": {
-        "imagePublisher": "Canonical",
-        "imageOffer": "UbuntuServer",
+        "imagePublisher": "[if(equals(parameters('ubuntuOSVersion'),'20.04-LTS'),'canonical','Canonical')]",
+        "imageOffer": "[if(equals(parameters('ubuntuOSVersion'),'20.04-LTS'),'0001-com-ubuntu-server-focal','UbuntuServer')]",
+        "imageSku": "[if(equals(parameters('ubuntuOSVersion'),'20.04-LTS'),'20_04-lts',parameters('ubuntuOSVersion'))]",
+        "imageVersion": "latest",
         "nicName": "networkInterface1",
         "vmName": "[parameters('hostName')]",
         "virtualNetworkName": "virtualNetwork1",
@@ -216,8 +218,8 @@
                     "imageReference": {
                         "publisher": "[variables('imagePublisher')]",
                         "offer": "[variables('imageOffer')]",
-                        "sku": "[parameters('ubuntuOSVersion')]",
-                        "version": "latest"
+                        "sku": "[variables('imageSku')]",
+                        "version": "[variables('imageVersion')]"
                     },
                     "osDisk": {
                         "createOption": "FromImage"
