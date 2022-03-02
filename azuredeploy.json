@@ -9,13 +9,10 @@
             }
         },
         "enableBrowserBot": {
-            "type": "string",
-            "defaultValue": "Yes",
-            "allowedValues": [
-                "Yes"
-            ],
+            "defaultValue": true,
+            "type": "bool",
             "metadata": {
-                "description": "Allow enabling ThousandEyes Browser test capabilities (Page Load and Transaction). Currently forced to 'Yes'."
+                "description": "Allow enabling ThousandEyes Browser test capabilities (Page Load and Transaction)."
             }
         },
         "hostName": {
@@ -25,20 +22,10 @@
             }
         },
         "vmSize": {
-            "type": "string",
             "defaultValue": "Standard_B1s",
+            "type": "string",
             "metadata": {
                 "description": "Select the size of the Agent VM. Standard_B1s - 1 vCPU, 1 GB Mem; Standard_B2s - 2 vCPU, 4 GB Mem; Standard_D2_v2 - 2 vCPU, 7 GB Mem"
-            }
-        },
-        "networkSecurityGroup": {
-            "type": "string",
-            "defaultValue": "Create New",
-            "allowedValues": [
-                "Create New"
-            ],
-            "metadata": {
-                "description": "Specify whether to create a new security group or use an existing security group. If 'Create New', a default security group will be created that only allows incomming port 22 (SSH) connections; outbound connections will be allowed. Currently forced to 'Create New'."
             }
         },
         "ubuntuOSVersion": {
@@ -70,10 +57,42 @@
                 "description": "Specify the admin user name for the VM."
             }
         },
-        "sshKey": {
+        "sshPublicKey": {
             "type": "securestring",
             "metadata": {
-                "description": "Provide the SSH Public Key that will be used to connecting to the Agent virtual machine."
+                "description": "Public key used to SSH to the Agent."
+            }
+        },
+        "proxyType": {
+            "type": "String",
+            "defaultValue": "None",
+            "allowedValues": [
+                "None",
+                "STATIC"
+            ],
+            "metadata": {
+                "description": "If using a proxy, specify the proxy type. Default is none."
+            }
+        },
+        "proxyHost": {
+            "type": "String",
+            "defaultValue": "",
+            "metadata": {
+                "description": "If using a proxy, specify the proxy host and port (if any) to use for Agent configuration. <host>:<port>"
+            }
+        },
+        "proxyUser": {
+            "type": "String",
+            "defaultValue": "",
+            "metadata": {
+                "description": "If using a proxy, specify the proxy user (if required)."
+            }
+        },
+        "proxyPass": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "If using a proxy, specify the proxy password (if required)."
             }
         }
     },
@@ -96,7 +115,7 @@
                 "publicKeys": [
                     {
                         "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
-                        "keyData": "[parameters('sshKey')]"
+                        "keyData": "[parameters('sshPublicKey')]"
                     }
                 ]
             },
@@ -105,14 +124,19 @@
                 "patchMode": "[if(equals(parameters('enableAutoPatch'),'Yes'), 'AutomaticByPlatform', 'ImageDefault')]"
             }
         },
+        "bbotArg": "[if(parameters('enableBrowserBot'), ' -b ', '')]",
+        "proxyTypeArg": "[if(equals(parameters('proxyType'), 'None'), '', concat(' -t ', parameters('proxyType'), ' '))]",
+        "proxyHostArg": "[if(empty(parameters('proxyHost')), '', concat(' -P ', parameters('proxyHost'), ' '))]",
+        "proxyUserArg": "[if(empty(parameters('proxyUser')), '', concat(' -U ', parameters('proxyHost'), ' '))]",
+        "proxyPassArg": "[if(empty(parameters('proxyPass')), '', concat(' -u ', parameters('proxyPass'), ' '))]",
         "networkSecurityGroupName": "default-NSG",
-        "userData": "[concat('#!/bin/bash \nexport TERM=\"xterm\" \nretry=0 \nuntil [ $retry -ge 5 ] \ndo \nwhile fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do\necho -en \"Waiting for other software managers to finish...\"\nsleep 0.5\ndone\ncurl -Os https://downloads.thousandeyes.com/agent/install_thousandeyes.sh && chmod +x install_thousandeyes.sh && sudo ./install_thousandeyes.sh -b ', parameters('accountGroupToken'), ' && break\nretry=$[$retry+1]\nsleep 15\ndone')]",
+        "userData": "[concat('#!/bin/bash \nexport TERM=\"xterm\" \nretry=0 \nuntil [ $retry -ge 5 ] \ndo \nwhile fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do\necho -en \"Waiting for other software managers to finish...\"\nsleep 0.5\ndone\ncurl -Os https://downloads.thousandeyes.com/agent/install_thousandeyes.sh && chmod +x install_thousandeyes.sh && sudo ./install_thousandeyes.sh ', variables('bbotArg'), variables('proxyTypeArg'), variables('proxyHostArg'), variables('proxyUserArg'), variables('proxyPassArg'), parameters('accountGroupToken'), ' && break\nretry=$[$retry+1]\nsleep 15\ndone')]",
         "location": "[resourceGroup().location]"
     },
     "resources": [
         {
-            "apiVersion": "2019-06-01",
             "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2019-06-01",
             "name": "[variables('publicIPAddressName')]",
             "location": "[variables('location')]",
             "properties": {
@@ -120,7 +144,6 @@
             }
         },
         {
-            "comments": "Default Network Security Group for template",
             "type": "Microsoft.Network/networkSecurityGroups",
             "apiVersion": "2019-08-01",
             "name": "[variables('networkSecurityGroupName')]",
@@ -144,8 +167,8 @@
             }
         },
         {
-            "apiVersion": "2019-06-01",
             "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2019-06-01",
             "name": "[variables('virtualNetworkName')]",
             "location": "[variables('location')]",
             "dependsOn": [
@@ -171,8 +194,8 @@
             }
         },
         {
-            "apiVersion": "2019-06-01",
             "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2019-06-01",
             "name": "[variables('nicName')]",
             "location": "[variables('location')]",
             "dependsOn": [
@@ -197,8 +220,8 @@
             }
         },
         {
-            "apiVersion": "2021-03-01",
             "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2021-03-01",
             "name": "[variables('vmName')]",
             "location": "[variables('location')]",
             "dependsOn": [

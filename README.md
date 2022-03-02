@@ -20,7 +20,7 @@ This ThousandEyes Azure deployment template includes two features that ensure ev
 * **Automatic Security Patching** - the template provides the option to enable Azure Auto Patching. This is a public preview feature (as of July 2021) that automatically updates the agent OS image to the latest patch of Ubuntu. Critical and Security patches are downloaded and applied automatically on the VM. Agent will automatically reboot if necessary. See Azure documentation on [guest patching](https://docs.microsoft.com/en-us/azure/virtual-machines/automatic-vm-guest-patching) for more details.
 
 ## Supported OS Images
-* Currently only Ubuntu 18.04 and 20.04 LTS are supported. Future Ubuntu LTS versions will be added as options when they become supported. 
+* Currently only Ubuntu 18.04 and 20.04 LTS are supported. Ubuntu 20.04 is only available as Pro subscription. Future Ubuntu LTS versions will be added as they become supported. 
 * Red Hat Enterprise Linux (RHEL) may be added in the future, but requires an additional paid subscription.
 
 ## Other Notes
