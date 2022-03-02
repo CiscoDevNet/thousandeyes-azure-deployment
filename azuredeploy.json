@@ -78,7 +78,7 @@
             "type": "String",
             "defaultValue": "",
             "metadata": {
-                "description": "If using a proxy, specify the proxy host and port (if any) to use for Agent configuration. <host>:<port>"
+                "description": "If using a proxy, specify the proxy host and port (host:port)"
             }
         },
         "proxyUser": {
