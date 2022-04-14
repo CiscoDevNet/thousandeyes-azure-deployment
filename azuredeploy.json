@@ -127,13 +127,43 @@
         "bbotArg": "[if(parameters('enableBrowserBot'), ' -b ', '')]",
         "proxyTypeArg": "[if(equals(parameters('proxyType'), 'None'), '', concat(' -t ', parameters('proxyType'), ' '))]",
         "proxyHostArg": "[if(empty(parameters('proxyHost')), '', concat(' -P ', parameters('proxyHost'), ' '))]",
-        "proxyUserArg": "[if(empty(parameters('proxyUser')), '', concat(' -U ', parameters('proxyHost'), ' '))]",
+        "proxyUserArg": "[if(empty(parameters('proxyUser')), '', concat(' -U ', parameters('proxyUser'), ' '))]",
         "proxyPassArg": "[if(empty(parameters('proxyPass')), '', concat(' -u ', parameters('proxyPass'), ' '))]",
         "networkSecurityGroupName": "default-NSG",
-        "userData": "[concat('#!/bin/bash \nexport TERM=\"xterm\" \nretry=0 \nuntil [ $retry -ge 5 ] \ndo \nwhile fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do\necho -en \"Waiting for other software managers to finish...\"\nsleep 0.5\ndone\ncurl -Os https://downloads.thousandeyes.com/agent/install_thousandeyes.sh && chmod +x install_thousandeyes.sh && sudo ./install_thousandeyes.sh ', variables('bbotArg'), variables('proxyTypeArg'), variables('proxyHostArg'), variables('proxyUserArg'), variables('proxyPassArg'), parameters('accountGroupToken'), ' && break\nretry=$[$retry+1]\nsleep 15\ndone')]",
+        "customData": "[concat('#cloud-config\n\nruncmd:\n- curl -Os https://downloads.thousandeyes.com/agent/install_thousandeyes.sh\n- chmod +x install_thousandeyes.sh\n- sudo ./install_thousandeyes.sh ', variables('bbotArg'), variables('proxyTypeArg'), variables('proxyHostArg'), variables('proxyUserArg'), variables('proxyPassArg'), parameters('accountGroupToken'))]",
         "location": "[resourceGroup().location]"
     },
     "resources": [
+
+        {
+            "name": "[concat(resourceGroup().name, 'install_thousandeyes')]",
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2019-10-01-preview",
+            "location": "[resourceGroup().location]",
+            "kind": "AzureCLI",
+            "properties": {
+                "azCliVersion": "2.0.80",
+                "retentionInterval": "P1D",
+                "cleanupPreference": "OnExpiration",
+                "primaryScriptUri": "https://downloads.thousandeyes.com/agent/install_thousandeyes.sh",
+                "supportingScriptUris": [],
+                "arguments": "[concat(resourceGroup().name, ' ', subscription().displayName, ' ', resourceGroup().location)]"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2019-10-01-preview",
+            "name": "install_thousandeyes",
+            "location": "[resourceGroup().location]",
+            "kind": "AzureCLI",
+            "properties": {
+                "azCliVersion": "2.0.80",
+                "primaryScriptUri": "https://downloads.thousandeyes.com/agent/install_thousandeyes.sh",
+                "timeout": "PT30M",
+                "cleanupPreference": "OnSuccess",
+                "retentionInterval": "P1D"
+            }
+        },
         {
             "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "2019-06-01",
@@ -234,9 +264,9 @@
                 "osProfile": {
                     "computerName": "[variables('vmName')]",
                     "adminUsername": "[parameters('adminUsername')]",
-                    "linuxConfiguration": "[variables('linuxConfiguration')]"
+                    "linuxConfiguration": "[variables('linuxConfiguration')]",
+                    "customData": "[base64(variables('customData'))]"
                 },
-                "userData": "[base64(variables('userData'))]",
                 "storageProfile": {
                     "imageReference": {
                         "publisher": "[variables('imagePublisher')]",
