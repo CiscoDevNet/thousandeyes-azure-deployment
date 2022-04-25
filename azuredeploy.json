@@ -165,6 +165,19 @@
                             "sourcePortRange": "*",
                             "destinationAddressPrefix": "*"
                         }
+                    },
+                    {
+                        "name": "AllowTtlExceededResponse",
+                        "properties": {
+                            "priority": 1010,
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "destinationPortRange": "11",
+                            "protocol": "ICMP",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*"
+                        }
                     }
                 ]
             }
