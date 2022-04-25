@@ -1,5 +1,5 @@
 # Azure One-Click Deployment for ThousandEyes Enterprise Agent
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fte-cloud-template.s3.amazonaws.com%2Fazuredeploy.json) [![Visualize](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/visualizebutton.svg?sanitize=true)](http://armviz.io/#/?load=https%3A%2F%2Fte-cloud-template.s3.amazonaws.com%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fte-cloud-template.s3.amazonaws.com%2Fazure%2Fazuredeploy.json) [![Visualize](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/visualizebutton.svg?sanitize=true)](http://armviz.io/#/?load=https%3A%2F%2Fte-cloud-template.s3.amazonaws.com%2Fazure%2Fazuredeploy.json)
 
 This Azure ARM Template deploys an Ubuntu based ThousandEyes Enterprise Agent in your Azure cloud environment. This requires an active ThousandEyes account; if you don't have one, you can start a fully featured [free trial](https://www.thousandeyes.com/signup/).
 
