@@ -23,6 +23,7 @@ This ThousandEyes Azure deployment template includes two features that ensure ev
 * Currently only Ubuntu 18.04 and 20.04 LTS are supported. Ubuntu 20.04 is only available as Pro subscription. Future Ubuntu LTS versions will be added as they become supported. 
 * Red Hat Enterprise Linux (RHEL) may be added in the future, but requires an additional paid subscription.
 
-## Other Notes
-* This template currently only supports creating a new Network Security Group, which defaults to limiting inbound traffic to Port 22 (SSH). 
-* This template currently only creates a single Network Interface.
+## Other Notes on Template:
+* Creates single network interface
+* Allows SSH connections (Port 22)
+* Opens up ICMP Type 11 for improved ThousandEyes Path Visualization support.
